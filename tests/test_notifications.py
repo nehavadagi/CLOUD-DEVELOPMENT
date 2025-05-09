@@ -19,20 +19,11 @@ def get_auth_token(email: str, password: str) -> str:
     response = client.post("/login", json={"email": email, "password": password})
     print(f"🔐 Login response [{response.status_code}]: {response.text}")
 
-    if response.status_code != 200:
-        raise AssertionError(f"❌ Login failed: {response.status_code} - {response.text}")
+    assert response.status_code == 200, f"Login failed: {response.text}"
 
-    try:
-        data = response.json()
-        token = data.get("access_token")
-        if token:
-            print(f"✅ Received token: {token[:10]}...[REDACTED]")
-        else:
-            print("❌ No access_token found in login response!")
-        assert token is not None
-        return token
-    except Exception as e:
-        raise AssertionError(f"❌ Failed to parse login response: {response.text}\nError: {e}")
+    token = response.json().get("access_token")
+    assert token is not None, "❌ No access_token in login response"
+    return token
 
 @pytest.fixture
 def auth_token():

@@ -16,21 +16,12 @@ def get_auth_token(email: str, password: str) -> str:
     # Login
     response = client.post("/login", json={"email": email, "password": password})
     print(f"Login response [{response.status_code}]: {response.text}")
-
-    if response.status_code != 200:
-        raise AssertionError(f"Login failed: {response.status_code} - {response.text}")
     
-    try:
-        data = response.json()
-        token = data.get("access_token")
-        if token:
-            print(f"✅ Received token: {token[:10]}...[REDACTED]")
-        else:
-            print("❌ No access_token found in login response!")
-        assert token is not None
-        return token
-    except Exception as e:
-        raise AssertionError(f"❌ Failed to parse login response: {response.text}\nError: {e}")
+    assert response.status_code == 200, f"Login failed: {response.text}"
+
+    token = response.json().get("access_token")
+    assert token is not None, "❌ No access_token in login response"
+    return token
 
 def test_submit_job_with_valid_token():
     email = "jobuser@example.com"
@@ -85,8 +76,16 @@ def test_job_submission_returns_queue_message():
     email = "queueuser@example.com"
     password = "abcd"
     token = get_auth_token(email, password)
-    assert token, "❌ No token received"
+    assert token, " No token received"
 
+    db = SessionLocal()
+    user = db.query(User).filter(User.email == email).first()
+    assert user, " User not found in DB"
+    user.credits = 5  # Or any number > 0
+    db.commit()
+    db.close()
+
+    #  Submit job
     response = client.post(
         "/submit-job",
         json={"prompt": "Queue me up"},
