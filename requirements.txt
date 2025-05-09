@@ -9,3 +9,4 @@ requests
 sendgrid
 python-dotenv
 pytest
+httpx
