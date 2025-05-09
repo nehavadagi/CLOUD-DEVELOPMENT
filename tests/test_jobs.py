@@ -10,22 +10,27 @@ from app.main import app
 client = TestClient(app)
 
 def get_auth_token(email: str, password: str) -> str:
-    # Attempt signup (ignore errors if user exists)
+    # Sign up (may already exist)
     client.post("/signup", json={"email": email, "password": password})
 
-    # Login to get token
+    # Login
     response = client.post("/login", json={"email": email, "password": password})
     print(f"Login response [{response.status_code}]: {response.text}")
 
     if response.status_code != 200:
-        raise AssertionError(f"❌ Login failed: {response.status_code} - {response.text}")
-
-    data = response.json()
-    token = data.get("access_token")
-    assert token is not None, f"❌ Login did not return access_token. Got: {data}"
-    print(f"✅ Received token: {token[:10]}...")  # Obscured for logs
-
-    return token
+        raise AssertionError(f"Login failed: {response.status_code} - {response.text}")
+    
+    try:
+        data = response.json()
+        token = data.get("access_token")
+        if token:
+            print(f"✅ Received token: {token[:10]}...[REDACTED]")
+        else:
+            print("❌ No access_token found in login response!")
+        assert token is not None
+        return token
+    except Exception as e:
+        raise AssertionError(f"❌ Failed to parse login response: {response.text}\nError: {e}")
 
 def test_submit_job_with_valid_token():
     email = "jobuser@example.com"

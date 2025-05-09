@@ -5,33 +5,42 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 from app.main import app
 from app.database import SessionLocal
 from app.models import User
 
 client = TestClient(app)
 
+def get_auth_token(email: str, password: str) -> str:
+    # Try to register the user (ignore if already exists)
+    client.post("/signup", json={"email": email, "password": password})
+
+    # Login and debug log
+    response = client.post("/login", json={"email": email, "password": password})
+    print(f"🔐 Login response [{response.status_code}]: {response.text}")
+
+    if response.status_code != 200:
+        raise AssertionError(f"❌ Login failed: {response.status_code} - {response.text}")
+
+    try:
+        data = response.json()
+        token = data.get("access_token")
+        if token:
+            print(f"✅ Received token: {token[:10]}...[REDACTED]")
+        else:
+            print("❌ No access_token found in login response!")
+        assert token is not None
+        return token
+    except Exception as e:
+        raise AssertionError(f"❌ Failed to parse login response: {response.text}\nError: {e}")
+
 @pytest.fixture
 def auth_token():
     email = "mailtest@example.com"
     password = "mail"
+    token = get_auth_token(email, password)
 
-    # Ensure fresh user state
-    db = SessionLocal()
-    existing_user = db.query(User).filter(User.email == email).first()
-    if existing_user:
-        db.delete(existing_user)
-        db.commit()
-    db.close()
-
-    # Signup and login
-    client.post("/signup", json={"email": email, "password": password})
-    response = client.post("/login", json={"email": email, "password": password})
-    token = response.json().get("access_token")
-    assert token, "❌ No token received"
-
-    # Ensure at least 1 credit
+    # Ensure the user has at least 1 credit
     db = SessionLocal()
     user = db.query(User).filter(User.email == email).first()
     user.credits = 1
@@ -41,7 +50,7 @@ def auth_token():
     return token
 
 def test_email_notification_mocked(auth_token):
-    # ✅ Patch the function where it is USED — in app.tasks
+    # ✅ Patch the function where it's used (in app.tasks)
     with patch("app.tasks.send_email_notification") as mock_send_email:
         mock_send_email.side_effect = lambda email, content: print(f"(MOCK) Email to {email}: {content}")
 
