@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: fastapi-cloud-dev
+    env: docker
+    plan: free
+    region: frankfurt
+    branch: main
+    autoDeploy: true
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: DATABASE_URL
+        value: <will be set in Render dashboard>
+      - key: SENDGRID_API_KEY
+        value: <will be set in Render dashboard>
