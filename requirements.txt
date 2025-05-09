@@ -6,4 +6,5 @@ python-jose
 passlib[bcrypt]
 pydantic
 requests
-aiofiles
+sendgrid
+python-dotenv
