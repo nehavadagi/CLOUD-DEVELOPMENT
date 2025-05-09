@@ -25,7 +25,7 @@ def get_auth_token(email: str, password: str) -> str:
         token = data.get("access_token")
         if not token:
             raise AssertionError(f"❌ 'access_token' missing in login response: {data}")
-        print(f"✅ Received token: {token}")
+        print(f"✅ Received token: {token[:10]}...")  # Obscure full token for CI logs
         return token
     except Exception as e:
         raise AssertionError(f"❌ Failed to parse login response: {response.text}\nError: {e}")
@@ -34,6 +34,7 @@ def test_submit_job_with_valid_token():
     email = "jobuser@example.com"
     password = "1234"
     token = get_auth_token(email, password)
+    assert token, "❌ No token received"
 
     # Ensure user has credits
     db = SessionLocal()
@@ -53,8 +54,6 @@ def test_submit_job_with_valid_token():
     assert "msg" in response.json()
     assert "Job submitted" in response.json()["msg"]
 
-
-
 def test_job_submission_fails_if_credits_zero():
     email = "nocredit@example.com"
     password = "pass"
@@ -62,6 +61,7 @@ def test_job_submission_fails_if_credits_zero():
     # Ensure user exists
     client.post("/signup", json={"email": email, "password": password})
     token = get_auth_token(email, password)
+    assert token, "❌ No token received"
 
     # Set user credits to zero
     db: Session = SessionLocal()
@@ -74,16 +74,19 @@ def test_job_submission_fails_if_credits_zero():
     # Submit job
     response = client.post(
         "/submit-job",
-        json={"prompt": "Test"},
+        json={"prompt": "Test AI job"},
         headers={"Authorization": f"Bearer {token}"}
     )
     print("Zero-credit response:", response.status_code, response.text)
     assert response.status_code == 403
     assert "No credits left" in response.json()["detail"]
 
-
 def test_job_submission_returns_queue_message():
-    token = get_auth_token("queueuser@example.com", "abcd")
+    email = "queueuser@example.com"
+    password = "abcd"
+    token = get_auth_token(email, password)
+    assert token, "❌ No token received"
+
     response = client.post(
         "/submit-job",
         json={"prompt": "Queue me up"},
