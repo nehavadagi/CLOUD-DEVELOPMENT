@@ -8,3 +8,4 @@ pydantic
 requests
 sendgrid
 python-dotenv
+pytest
