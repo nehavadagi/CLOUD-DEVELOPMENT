@@ -26,6 +26,43 @@ Test Coverage
 | Email Notification | ✅      | Mocked test for job email notification |
 
 ---
+**Deployment (Render)**
+Live URL: https://fastapi-cloud-dev.onrender.com
+Steps:
+Stap 1: Push code to GitHub.
+
+Step 2: Login to Render and click New > Web Service.
+
+Step 3: Connect your GitHub repo.
+
+Step 4: Use the following settings:
+
+       Environment: Docker
+
+Step 5: Build Command: docker build -t ai-api .
+
+Step 6: Start Command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+Step 7: Add environment variables (.env) in Render > Environment tab.
+
+---
+
+***Technologies***
+- Python 3.10
+
+- FastAPI
+
+- SQLAlchemy + SQLite
+
+- JWT Auth (python-jose)
+
+- Docker & Docker Compose
+
+- SendGrid (for email)
+
+- Pytest (for testing)
+
+---
 
 Build & Run Instructions
 
