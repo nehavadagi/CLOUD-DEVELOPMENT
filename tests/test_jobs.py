@@ -10,17 +10,8 @@ from app.main import app
 client = TestClient(app)
 
 def get_auth_token(email: str, password: str) -> str:
-    # Clean existing user (helps in CI/CD where DB persists between runs)
-    db = SessionLocal()
-    existing_user = db.query(User).filter(User.email == email).first()
-    if existing_user:
-        db.delete(existing_user)
-        db.commit()
-    db.close()
-
-    # Attempt signup
-    signup_response = client.post("/signup", json={"email": email, "password": password})
-    print(f"Signup response [{signup_response.status_code}]: {signup_response.text}")
+    # Attempt signup (ignore errors if user exists)
+    client.post("/signup", json={"email": email, "password": password})
 
     # Login to get token
     response = client.post("/login", json={"email": email, "password": password})
@@ -29,14 +20,12 @@ def get_auth_token(email: str, password: str) -> str:
     if response.status_code != 200:
         raise AssertionError(f"❌ Login failed: {response.status_code} - {response.text}")
 
-    try:
-        data = response.json()
-        token = data.get("access_token")
-        assert token is not None, f"❌ 'access_token' missing in login response: {data}"
-        print(f"✅ Received token: {token[:10]}...")  # Obscure full token for CI logs
-        return token
-    except Exception as e:
-        raise AssertionError(f"❌ Failed to parse login response: {response.text}\nError: {e}")
+    data = response.json()
+    token = data.get("access_token")
+    assert token is not None, f"❌ Login did not return access_token. Got: {data}"
+    print(f"✅ Received token: {token[:10]}...")  # Obscured for logs
+
+    return token
 
 def test_submit_job_with_valid_token():
     email = "jobuser@example.com"
